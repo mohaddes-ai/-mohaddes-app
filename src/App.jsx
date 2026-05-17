@@ -89,7 +89,7 @@ export default function Mohaddes() {
         body: JSON.stringify({ messages: newMsgs }),
       });
       const data = await res.json();
-      const text = data.content?.map(b => b.text || "").join("") || (lang === "fa" ? "خطا در دریافت پاسخ" : "خطأ في الاستجابة");
+const text = data.reply || (lang === "fa" ? "خطا در دریافت پاسخ" : "خطأ في الاستجابة");
       setMessages([...newMsgs, { role: "assistant", content: text }]);
     } catch {
       setMessages([...newMsgs, { role: "assistant", content: lang === "fa" ? "⚠️ خطا در اتصال" : "⚠️ خطأ في الاتصال" }]);
