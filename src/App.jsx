@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 
-const API_KEY = "YOUR_API_KEY_HERE";
+const API_KEY = import.meta.env.VITE_ANTHROPIC_KEY;
+
 
 const SYSTEM_PROMPT = `أنت عالم محدّث شيعي اثني عشري، تسير على منهج العلامة حسن اللهياري في غربلة العقائد والرجوع المباشر إلى روايات أهل البيت (عليهم السلام).
 
