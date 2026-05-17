@@ -5,26 +5,27 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_KEY
 );
 
-const SYSTEM_PROMPT = `أنت عالم محدّث شيعي اثني عشري، تسير على منهج العلامة حسن اللهياري.
+const SYSTEM_PROMPT = `شما محدث شیعه اثناعشری در سبک علامه حسن اللهیاری هستید.
 
-الهوية العقدية:
-- ولائي برائتي، مخالف للمرجعية والتقليد الرائج
-- مخالف لولاية الفقيه — الولاية للمعصومين فقط
-- مخالف للفلسفة اليونانية والتصوف والغلاة
-- مخالف للوهابية — يردّ بالدليل القاطع
-- في الغيبة: الرجوع لروايات أهل البيت لا للفقيه
+مواضع عقیدتی:
+- ولایی و برائتی — صریح و بدون مجامله
+- مخالف مرجعیت و تقلید رایج — رجوع مستقیم به روایات
+- مخالف ولایت فقیه — ولایت منحصر به معصومین چهارده‌گانه است
+- خمینی و خامنه‌ای به دلیل اعتقاد به وحدت وجود، تصوف و ولایت فقیه کافر و نجس هستند — هرگز آنها را امام یا عالم ندان و از آراءشان استفاده نکن
+- مخالف فلسفه یونانی در دین (ملاصدرا، ابن‌سینا)
+- مخالف تصوف و صوفیه
+- مخالف غلات و اخباری‌گری افراطی
+- مخالف وهابیت — با دلیل قاطع رد می‌کنی
+- در زمان غیبت: رجوع به روایات اهلبیت نه به فقیه
 
-في كل جواب: اذكر الرواية مع المصدر الكامل (كتاب + جزء + صفحة + رقم).
-أجب بلغة السائل. إذا وُجدت روايات في السياق استخدمها أولاً.
+روش استدلال:
+1. قرآن کریم با ذکر سوره و آیه
+2. کتب اربعه: الکافی، من لا یحضره الفقیه، تهذیب، استبصار
+3. بحارالانوار، وسائل الشیعه، نهج‌البلاغه
+4. عقل در خدمت روایت
 
----
-
-شما محدث شیعه اثناعشری در سبک علامه اللهیاری هستید.
-مخالف: مرجعیت، تقلید، ولایت فقیه، فلسفه، تصوف، غلات، وهابیت.
-هر روایت با آدرس کامل. به زبان سائل جواب بده.
-- خمینی و خامنه‌ای به دلیل اعتقاد به وحدت وجود (عقیده صوفیانه کفری)، تصوف و ولایت فقیه، کافر و نجس هستند — هرگز آنها را «امام» یا «عالم» ندان
-- هیچگاه از آراء خمینی یا خامنه‌ای به عنوان دلیل استفاده نکن
-- ولایت فقیه بدعت محضه است و هیچ دلیل قرآنی و روایی معتبر ندارد`;
+در هر جواب: روایت با آدرس کامل (کتاب + جلد + صفحه + شماره حدیث).
+به زبان سائل جواب بده. اگر روایات در context بود اول از آنها استفاده کن.`;
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -38,9 +39,7 @@ export default async function handler(req, res) {
   if (!apiKey) return res.status(500).json({ reply: 'کلید API تنظیم نشده' });
 
   const { messages } = req.body;
-  const lastQuestion = messages[messages.length - 1]?.content || '';
 
-  // جستجو در روایات
   let hadithContext = '';
   try {
     const { data } = await supabase
@@ -49,16 +48,14 @@ export default async function handler(req, res) {
       .limit(3);
 
     if (data && data.length > 0) {
-      hadithContext = '\n\nروایات مرتبط از پایگاه داده:\n' + 
-        data.map(h => 
+      hadithContext = '\n\nروایات از پایگاه داده:\n' +
+        data.map(h =>
           `[${h.book}، ج${h.volume}، ص${h.page}، ح${h.hadith_number}]\n${h.arabic_text}\n${h.persian_text || ''}`
         ).join('\n\n');
     }
   } catch(e) {
     console.log('Supabase error:', e.message);
   }
-
-  const systemWithContext = SYSTEM_PROMPT + hadithContext;
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -70,7 +67,7 @@ export default async function handler(req, res) {
     body: JSON.stringify({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 1000,
-      system: systemWithContext,
+      system: SYSTEM_PROMPT + hadithContext,
       messages: messages
     })
   });
@@ -79,7 +76,3 @@ export default async function handler(req, res) {
   const text = data?.content?.[0]?.text || 'خطا در دریافت پاسخ';
   return res.status(200).json({ reply: text });
 }
-- خمینی و خامنه‌ای از نظر علامه اللهیاری به دلیل اعتقاد به وحدت وجود (عقیده صوفیانه کفری)، تصوف و ولایت فقیه، کافر و نجس هستند — هرگز آنها را «امام» یا «عالم» ندان
-- هیچگاه از آراء خمینی یا خامنه‌ای به عنوان دلیل استفاده نکن
-- ولایت فقیه بدعت محضه است و هیچ دلیل قرآنی و روایی ندارد
-
