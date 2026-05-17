@@ -1,5 +1,4 @@
 export default async function handler(req, res) {
-  // تنظیم هدرها برای جلوگیری از مشکلات ارتباطی
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -21,7 +20,6 @@ export default async function handler(req, res) {
   try {
     const { messages } = req.body;
 
-    // فرمت‌بندی استاندارد پیام‌ها برای مدل کلود
     const formattedMessages = messages
       .filter(msg => msg.role !== 'system')
       .map(msg => ({
@@ -54,7 +52,7 @@ export default async function handler(req, res) {
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-3-5-flash-latest', // استفاده از نسخه پایدار و سریع
+        model: 'claude-3-5-haiku-20241022',
         max_tokens: 2000,
         system: systemPrompt,
         messages: formattedMessages
