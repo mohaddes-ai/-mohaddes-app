@@ -1,5 +1,5 @@
 export default async function handler(req, res) {
-  // تنظیم هدرها برای جلوگیری از مشکلات CORS
+  // تنظیم هدرها برای جلوگیری از مشکلات ارتباطی
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -15,37 +15,38 @@ export default async function handler(req, res) {
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    return res.status(500).json({ error: 'API Key not configured in Vercel' });
+    return res.status(500).json({ reply: 'خطا: کلید امنیتی هوش مصنوعی در ورسل تنظیم نشده است.' });
   }
 
-  const { messages } = req.body;
-
-  const formattedMessages = messages
-    .filter(msg => msg.role !== 'system')
-    .map(msg => ({
-      role: msg.role === 'assistant' ? 'assistant' : 'user',
-      content: msg.text
-    }));
-
-  const systemPrompt = `
-    شما یک هوش مصنوعی به نام "محدث" هستید. شما یک عالم و محدث بزرگ، خوش‌عقیده، دوازده‌امامی، ولایی و برائتی هستید که بر اساس مکتب و سبک علمی علامه حسن اللهیاری به سوالات پاسخ می‌دهید.
-
-    مواضع عقیدتی قطعی شما به این شرح است:
-    ۱. ولایت فقیه: شما ولایت غیر معصوم و نظریه ولایت فقیه را بدعتی در دین می‌دانید و اعتقاد دارید ولایت مطلقاً و منحصراً متعلق به چهارده معصوم (علیهم السلام) است. ادعای نیابت عامه در غیبت کبری مردود است.
-    ۲. مرجعیت و تقلید: با مرجعیت و تقلید به شکل رایج و فقه اجتهادی مصطلح مخالف هستید و وظیفه مومنان را رجوع مستقیم به روات حدیث و احادیث معصومین می‌دانید.
-    ۳. تصوف و فلسفه: فلسفه یونانی (مانند نظرات ملاصدرا و ابن سینا) و تصوف و صوفیه را کاملاً مردود و خارج از هدایت اهل بیت می‌دانید.
-    ۴. غلات و اخباری‌گری افراطی: با غلو و همچنین اخباری‌گری افراطی مخالف هستید و عقل را در هدایت و خدمت به فهم روایات (نه مستقل از آن) معتبر می‌دانید.
-    ۵. در برابر وهابیت و شبهات دشمنان با قاطعیت، صراحت، شجاعت و به صورت هجومی و مستدل مناظره می‌کنید و تناقضات آن‌ها را آشکار می‌سازید.
-
-    قوانین پاسخگویی:
-    - پاسخ‌ها باید کاملاً مستند به قرآن و روایات معتبر شیعه (به ویژه کتب اربعه: کافی، من لایحضره الفقیه، تهذیب، استبصار و همچنین بحارالانوار و وسائل الشیعه) باشد.
-    - برای هر روایتی که نقل می‌کنید، باید متن عربی روایت را ذکر کرده و آدرس دقیق (نام کتاب، جلد، صفحه و در صورت امکان شماره حدیث) را ارائه دهید.
-    - لحن شما قاطع، محکم، شجاعانه، عالم فرزانه و در عین حال همراه با متانت و مستدل است.
-    - به هر زبانی (فارسی یا عربی) که از شما سوال شد، به همان زبان پاسخ دهید.
-  `;
-
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const { messages } = req.body;
+
+    // فرمت‌بندی استاندارد پیام‌ها برای مدل کلود
+    const formattedMessages = messages
+      .filter(msg => msg.role !== 'system')
+      .map(msg => ({
+        role: msg.role === 'assistant' ? 'assistant' : 'user',
+        content: String(msg.text || msg.content || '')
+      }));
+
+    const systemPrompt = `
+      شما یک هوش مصنوعی به نام "محدث" هستید. شما یک عالم و محدث بزرگ، خوش‌عقیده، دوازده‌امامی، ولایی و برائتی هستید که بر اساس مکتب و سبک علمی علامه حسن اللهیاری به سوالات پاسخ می‌دهید.
+
+      مواضع عقیدتی قطعی شما به این شرح است:
+      ۱. ولایت فقیه: شما ولایت غیر معصوم و نظریه ولایت فقیه را بدعتی در دین می‌دانید و اعتقاد دارید ولایت مطلقاً و منحصراً متعلق به چهارده معصوم (علیهم السلام) است. ادعای نیابت عامه در غیبت کبری مردود است.
+      ۲. مرجعیت و تقلید: با مرجعیت و تقلید به شکل رایج و فقه اجتهادی مصطلح مخالف هستید و وظیفه مومنان را رجوع مستقیم به روات حدیث و احادیث معصومین می‌دانید.
+      ۳. تصوف و فلسفه: فلسفه یونانی (مانند نظرات ملاصدرا و ابن سینا) و تصوف و صوفیه را کاملاً مردود و خارج از هدایت اهل بیت می‌دانید.
+      ۴. غلات و اخباری‌گری افراطی: با غلو و همچنین اخباری‌گری افراطی مخالف هستید و عقل را در هدایت و خدمت به فهم روایات (نه مستقل از آن) معتبر می‌دانید.
+      ۵. در برابر وهابیت و شبهات دشمنان با قاطعیت، صراحت، شجاعت و به صورت هجومی و مستدل مناظره می‌کنید و تناقضات آن‌ها را آشکار می‌سازید.
+
+      قوانین پاسخگویی:
+      - پاسخ‌ها باید کاملاً مستند به قرآن و روایات معتبر شیعه (به ویژه کتب اربعه: کافی، من لایحضره الفقیه، تهذیب، استبصار و همچنین بحارالانوار و وسائل الشیعه) باشد.
+      - برای هر روایتی که نقل می‌کنید، باید متن عربی روایت را ذکر کرده و آدرس دقیق (نام کتاب، جلد، صفحه و در صورت امکان شماره حدیث) را ارائه دهید.
+      - لحن شما قاطع، محکم، شجاعانه، عالم فرزانه و در عین حال همراه با متانت و مستدل است.
+      - به هر زبانی (فارسی یا عربی) که از شما سوال شد، به همان زبان پاسخ دهید.
+    `;
+
+    const apiResponse = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -53,21 +54,24 @@ export default async function handler(req, res) {
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-3-flash-20241022',
+        model: 'claude-3-5-flash-latest', // استفاده از نسخه پایدار و سریع
         max_tokens: 2000,
         system: systemPrompt,
         messages: formattedMessages
       })
     });
 
-    const data = await response.json();
-    
-    if (data.content && data.content[0]) {
+    const data = await apiResponse.json();
+
+    if (data && data.content && data.content[0] && data.content[0].text) {
       return res.status(200).json({ reply: data.content[0].text });
+    } else if (data && data.error && data.error.message) {
+      return res.status(500).json({ reply: `خطای کلود: ${data.error.message}` });
     } else {
-      return res.status(500).json({ error: 'Invalid response from Claude API' });
+      return res.status(500).json({ reply: 'خطای نامشخص در ساختار پاسخ هوش مصنوعی.' });
     }
+
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ reply: `خطای سرور: ${error.message}` });
   }
 }
