@@ -131,7 +131,7 @@ export default function Mohaddes() {
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <img
-            src="/IMG_4045.PNG"
+            src="/IMG_4045.jpeg"
             alt="محدث"
             style={{
               width: 46, height: 46, borderRadius: "50%",
@@ -175,7 +175,7 @@ export default function Mohaddes() {
         {showWelcome && (
           <div style={{ textAlign: "center", padding: "30px 10px 20px" }}>
             <img
-              src="/IMG_4045.PNG"
+              src="/IMG_4045.jpeg"
               alt="محدث"
               style={{
                 width: 110, height: 110, borderRadius: "50%",
