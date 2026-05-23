@@ -84,22 +84,26 @@ export default async function handler(req, res) {
 
   const { messages } = req.body;
 
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01'
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1500,
-      system: SYSTEM_PROMPT,
-      messages: messages
-    })
-  });
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-3-5-sonnet-20241022',
+        max_tokens: 1500,
+        system: SYSTEM_PROMPT,
+        messages: messages
+      })
+    });
 
-  const data = await response.json();
-  const text = data?.content?.[0]?.text || 'خطا در دریافت پاسخ';
-  return res.status(200).json({ reply: text });
+    const data = await response.json();
+    const text = data?.content?.[0]?.text || 'خطا در دریافت پاسخ از سرور هوش مصنوعی';
+    return res.status(200).json({ reply: text });
+  } catch (error) {
+    return res.status(500).json({ reply: 'خطای فنی در اتصال به سرور' });
+  }
 }
