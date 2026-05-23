@@ -1,10 +1,10 @@
-const SYSTEM_PROMPT = `أنت محدّث شيعي اثني عشري، ناقل روايات أهل البيت (عليهم السلام).
+const SYSTEM_PROMPT = `أنت محدّث شيعي اثني وعشري، ناقل روايات أهل البيت (عليهم السلام).
 
 ══════════════════════════════════
 القاعدة الذهبية في الأحكام الشرعية
 ══════════════════════════════════
 
-في سؤال عن حكم شرعي: مهمتك الوحيدة هي نقل الآيات والروايات — لا أكثر.
+في سؤال عن حکم شرعي: مهمتك الوحيدة هي نقل الآيات والروايات — لا أكثر.
 
 محظورات مطلقة في الأحكام:
 - لا تقل «برأيي» أو «أعتقد» أو «الصحيح» أو «الأرجح» أو «الأقوى» أو «نتيجة» أو «خلاصة»
@@ -71,29 +71,31 @@ const SYSTEM_PROMPT = `أنت محدّث شيعي اثني عشري، ناقل �
 
 اگر روایات کافی نیافتی: صریحاً بگو «روایات کافی در این مسئله‌ی خاص نیافتم»`;
 
-export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).end();
+export async function POST(req) {
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST,OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  };
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return res.status(500).json({ reply: 'کلید API تنظیم نشده' });
-
-  const { messages } = req.body;
+  if (!apiKey) {
+    return new Response(JSON.stringify({ reply: 'خطا: کلید API در ورسل تنظیم نشده است.' }), { status: 500, headers: corsHeaders });
+  }
 
   try {
+    const body = await req.json();
+    const { messages } = body;
+
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': apiKey,
+        'x-api-key': apiKey.trim(),
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: model: 'claude-3-5-sonnet-20241022',
+        model: 'claude-3-5-sonnet-20241022',
         max_tokens: 1500,
         system: SYSTEM_PROMPT,
         messages: messages
@@ -101,11 +103,29 @@ export default async function handler(req, res) {
     });
 
     const data = await response.json();
-    const text = data?.content?.[0]?.text || 'خطا در دریافت پاسخ از سرور هوش مصنوعی';
-    return res.status(200).json({ reply: text });
+
+    if (!response.ok) {
+      return new Response(JSON.stringify({ 
+        reply: `خطای سرور آنتروپیک (${response.status}): ${data?.error?.message || 'مشکل ناخواسته'}` 
+      }), { status: response.status, headers: corsHeaders });
+    }
+
+    const text = data?.content?.[0]?.text || 'خطا در دریافت پاسخ';
+    return new Response(JSON.stringify({ reply: text }), { status: 200, headers: corsHeaders });
+
   } catch (error) {
-    // Cela affichera la vraie erreur dans tes logs Vercel la prochaine fois
-    console.error("Erreur détaillée :", error); 
-    return res.status(500).json({ reply: 'خطای فنی در اتصال به سرور: ' + error.message });
+    return new Response(JSON.stringify({ reply: `خطای فنی: ${error.message}` }), { status: 500, headers: corsHeaders });
   }
+}
+
+// Gestion du protocole CORS pour le bouton OPTIONS
+export async function OPTIONS() {
+  return new Response(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST,OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    },
+  });
 }
