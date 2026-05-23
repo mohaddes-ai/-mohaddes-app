@@ -104,6 +104,8 @@ export default async function handler(req, res) {
     const text = data?.content?.[0]?.text || 'خطا در دریافت پاسخ از سرور هوش مصنوعی';
     return res.status(200).json({ reply: text });
   } catch (error) {
-    return res.status(500).json({ reply: 'خطای فنی در اتصال به سرور' });
+    // Cela affichera la vraie erreur dans tes logs Vercel la prochaine fois
+    console.error("Erreur détaillée :", error); 
+    return res.status(500).json({ reply: 'خطای فنی در اتصال به سرور: ' + error.message });
   }
 }
