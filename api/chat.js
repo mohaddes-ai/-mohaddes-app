@@ -1,3 +1,10 @@
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY
+);
+
 const SYSTEM_PROMPT = `أنت محدّث شيعي اثني وعشري، ناقل روايات أهل البيت (عليهم السلام).
 
 ══════════════════════════════════
@@ -18,7 +25,7 @@ const SYSTEM_PROMPT = `أنت محدّث شيعي اثني وعشري، ناقل
 ثالثاً (اختياري فقط إن وُجد نص صريح): إن كان في ذاكرتك نص مباشر للعلامة حسن اللهياري في هذه المسألة بالذات، اذكره هكذا: «ذكر العلامة حسن اللهياري في هذه المسألة: ...» ثم أضف: «رأي العلامة اللهياري ليس حجة شرعية ولا يُبرئ ذمة السائل»
 رابعاً: قل للسائل: «هذه الروايات الواردة في المسألة — اقرأها بنفسك وتدبر فيها»
 
-إن لم تجد روايات كافية: قل صراحةً «لم أجد روايات كافية في هذه المسألة بالتحديد»
+إن لم تجد روايات كافية: قل صراحة «لم أجد روايات كافية في هذه المسألة بالتحديد»
 
 ══════════════════════════════════
 الهوية العقدية
@@ -71,6 +78,27 @@ const SYSTEM_PROMPT = `أنت محدّث شيعي اثني وعشري، ناقل
 
 اگر روایات کافی نیافتی: صریحاً بگو «روایات کافی در این مسئله‌ی خاص نیافتم»`;
 
+async function searchHadiths(query) {
+  try {
+    const { data, error } = await supabase
+      .from('hadiths')
+      .select('book, volume, page, hadith_number, arabic_text, persian_text, topic')
+      .or(`persian_text.ilike.%${query}%,topic.ilike.%${query}%,arabic_text.ilike.%${query}%`)
+      .limit(5);
+
+    if (error || !data || data.length === 0) return '';
+
+    return '\n\n══════════════════════════════════\nروایات مرتبط از پایگاه داده محدث:\n══════════════════════════════════\n' +
+      data.map(h =>
+        `📚 ${h.book} | ج${h.volume} ص${h.page} | ح${h.hadith_number}\n` +
+        `${h.arabic_text}\n` +
+        `ترجمه: ${h.persian_text}`
+      ).join('\n\n');
+  } catch (e) {
+    return '';
+  }
+}
+
 export async function POST(req) {
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -87,18 +115,21 @@ export async function POST(req) {
     const body = await req.json();
     let { messages } = body;
 
-    // Sécurité : Si pas de messages, on crée un tableau valide par défaut
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       messages = [{ role: 'user', content: 'سلام' }];
     }
 
-    // Nettoyage Anthropic : Conserver uniquement les rôles 'user' et 'assistant' et s'assurer que le contenu est une chaîne
     const cleanedMessages = messages
       .filter(msg => msg.role === 'user' || msg.role === 'assistant')
       .map(msg => ({
         role: msg.role,
         content: typeof msg.content === 'string' ? msg.content : String(msg.content)
       }));
+
+    // جستجوی روایات مرتبط از Supabase
+    const lastUserMessage = cleanedMessages.filter(m => m.role === 'user').pop()?.content || '';
+    const hadithContext = await searchHadiths(lastUserMessage);
+    const dynamicSystem = SYSTEM_PROMPT + hadithContext;
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -110,7 +141,7 @@ export async function POST(req) {
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
         max_tokens: 1500,
-        system: SYSTEM_PROMPT,
+        system: dynamicSystem,
         messages: cleanedMessages
       })
     });
@@ -118,8 +149,8 @@ export async function POST(req) {
     const data = await response.json();
 
     if (!response.ok) {
-      return new Response(JSON.stringify({ 
-        reply: `خطای سرور آنتروپیک (${response.status}): ${data?.error?.message || 'مشکل ناخواسته'}` 
+      return new Response(JSON.stringify({
+        reply: `خطای سرور آنتروپیک (${response.status}): ${data?.error?.message || 'مشکل ناخواسته'}`
       }), { status: response.status, headers: corsHeaders });
     }
 
