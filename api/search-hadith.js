@@ -19,7 +19,7 @@ export default async function handler(req, res) {
     const { data, error } = await supabase
       .from('hadiths')
       .select('book, volume, page, hadith_number, arabic_text, persian_text, topic')
-      .textSearch('arabic_text', query, { type: 'websearch' })
+      .or(`persian_text.ilike.%${query}%,topic.ilike.%${query}%,arabic_text.ilike.%${query}%`)
       .limit(5);
 
     if (error) throw error;
