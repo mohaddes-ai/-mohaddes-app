@@ -85,7 +85,20 @@ export async function POST(req) {
 
   try {
     const body = await req.json();
-    const { messages } = body;
+    let { messages } = body;
+
+    // Sécurité : Si pas de messages, on crée un tableau valide par défaut
+    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+      messages = [{ role: 'user', content: 'سلام' }];
+    }
+
+    // Nettoyage Anthropic : Conserver uniquement les rôles 'user' et 'assistant' et s'assurer que le contenu est une chaîne
+    const cleanedMessages = messages
+      .filter(msg => msg.role === 'user' || msg.role === 'assistant')
+      .map(msg => ({
+        role: msg.role,
+        content: typeof msg.content === 'string' ? msg.content : String(msg.content)
+      }));
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -98,7 +111,7 @@ export async function POST(req) {
         model: 'claude-3-5-sonnet-20241022',
         max_tokens: 1500,
         system: SYSTEM_PROMPT,
-        messages: messages
+        messages: cleanedMessages
       })
     });
 
@@ -118,7 +131,6 @@ export async function POST(req) {
   }
 }
 
-// Gestion du protocole CORS pour le bouton OPTIONS
 export async function OPTIONS() {
   return new Response(null, {
     status: 200,
