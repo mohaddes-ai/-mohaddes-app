@@ -207,7 +207,7 @@ export default function Mohaddes() {
         position: "sticky", top: 0, zIndex: 20,
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <img src="/IMG_4045.jpeg" alt="محدث" style={{
+          <img src="/IMG_4045.png" alt="محدث" style={{
             width: 46, height: 46, borderRadius: "50%", objectFit: "cover",
             boxShadow: "0 0 22px rgba(180,130,20,0.35)",
             border: "1px solid rgba(180,130,20,0.3)",
@@ -245,7 +245,7 @@ export default function Mohaddes() {
       }}>
         {showWelcome && (
           <div style={{ textAlign: "center", padding: "30px 10px 20px" }}>
-            <img src="/IMG_4045.jpeg" alt="محدث" style={{
+            <img src="/IMG_4045.png" alt="محدث" style={{
               width: 110, height: 110, borderRadius: "50%", objectFit: "cover",
               marginBottom: 20, boxShadow: "0 0 40px rgba(180,130,20,0.4)",
               border: "2px solid rgba(180,130,20,0.4)",
